@@ -10,7 +10,6 @@ use App\Services\MqttBrokerService;
 use App\Services\TelemetryIngestionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 
 /**
  * ThresholdSettingController
@@ -20,7 +19,7 @@ use Illuminate\View\View;
  * - Configure lower RH threshold (`fan_off_humidity`, default 55%)
  * - Configure ultrasonic helmet detection distance (`detection_distance_cm`, default 15 cm)
  * - Configure ESP32 telemetry transmission interval (`data_interval_seconds`, default 2 s)
- * - Configure operating mode (`auto_mode` & `notify_on_complete`)
+ * - Keep automatic mode enabled and completion notifications disabled
  * - Reset settings to factory defaults (`Kembalikan Default`)
  * - Publish updated thresholds to the ESP32 via MQTT
  */
@@ -32,15 +31,11 @@ class ThresholdSettingController extends Controller
     ) {}
 
     /**
-     * Display the Threshold Settings form and LED/Mode reference panel.
+     * Keep the legacy settings URL pointing to the combined device page.
      */
-    public function index(): View
+    public function index(): RedirectResponse
     {
-        $station = $this->telemetryService->getOrSeedDefaultStation();
-
-        return view('settings.index', [
-            'station' => $station,
-        ]);
+        return redirect()->route('devices.index');
     }
 
     /**
@@ -53,8 +48,6 @@ class ThresholdSettingController extends Controller
             'fan_off_humidity' => ['required', 'integer', 'min:20', 'max:90'],
             'detection_distance_cm' => ['required', 'integer', 'min:2', 'max:100'],
             'data_interval_seconds' => ['required', 'integer', 'min:1', 'max:300'],
-            'auto_mode' => ['nullable', 'boolean'],
-            'notify_on_complete' => ['nullable', 'boolean'],
         ], [
             'fan_on_humidity.gt' => 'Ambang kipas menyala (% RH) harus lebih besar daripada ambang kipas mati (% RH).',
         ]);
@@ -66,8 +59,8 @@ class ThresholdSettingController extends Controller
             'fan_off_humidity' => (int) $validated['fan_off_humidity'],
             'detection_distance_cm' => (int) $validated['detection_distance_cm'],
             'data_interval_seconds' => (int) $validated['data_interval_seconds'],
-            'auto_mode' => $request->boolean('auto_mode'),
-            'notify_on_complete' => $request->boolean('notify_on_complete'),
+            'auto_mode' => true,
+            'notify_on_complete' => false,
         ]);
 
         DeviceActivityLog::create([
@@ -86,7 +79,7 @@ class ThresholdSettingController extends Controller
         $this->mqttBroker->publishThresholdConfig($station);
 
         return redirect()
-            ->route('settings.index')
+            ->route('devices.index')
             ->with('status', 'Pengaturan ambang berhasil disimpan dan disinkronkan ke ESP32.');
     }
 
@@ -108,7 +101,7 @@ class ThresholdSettingController extends Controller
         $this->mqttBroker->publishThresholdConfig($station);
 
         return redirect()
-            ->route('settings.index')
+            ->route('devices.index')
             ->with('status', 'Pengaturan ambang telah dikembalikan ke nilai default (65% / 55% / 15 cm / 2 detik).');
     }
 }

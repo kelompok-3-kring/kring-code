@@ -6,7 +6,7 @@
         <div>
             <h2 class="text-2xl sm:text-[26px] font-bold tracking-tight text-[#14231d]">Dashboard Station</h2>
             <p class="text-sm text-[#6e7773] mt-0.5">
-                Senin, 26 Oktober 2026 &middot; {{ $station->name }}
+                {{ now()->locale('id')->translatedFormat('l, d F Y') }}
             </p>
         </div>
 
@@ -42,13 +42,6 @@
                 <span id="live-humidity" class="text-4xl font-bold tracking-tight">{{ number_format($station->current_humidity, 0) }}</span>
                 <span class="text-2xl font-bold">%</span>
             </div>
-            <p id="live-humidity-subtitle" class="mt-2 text-xs text-[#6e7773]">
-                @if ($station->current_humidity >= $station->fan_off_humidity)
-                    Di atas target &lt; {{ $station->fan_off_humidity }}%
-                @else
-                    Target tercapai &lt; {{ $station->fan_off_humidity }}%
-                @endif
-            </p>
         </div>
 
         {{-- Card 2: Suhu Dalam Helm --}}
@@ -58,7 +51,6 @@
                 <span id="live-temperature" class="text-4xl font-bold tracking-tight">{{ number_format($station->current_temperature, 1, ',', '.') }}</span>
                 <span class="text-xl font-bold">&deg;C</span>
             </div>
-            <p class="mt-2 text-xs text-[#6e7773]">Sensor DHT22</p>
         </div>
 
         {{-- Card 3: Deteksi Helm --}}
@@ -68,9 +60,6 @@
                 <span id="live-distance" class="text-4xl font-bold tracking-tight">{{ number_format($station->current_distance_cm, 0) }}</span>
                 <span class="text-xl font-bold">cm</span>
             </div>
-            <p id="live-distance-subtitle" class="mt-2 text-xs text-[#6e7773]">
-                {{ $station->helmet_detected ? 'Terdeteksi' : 'Standby' }} (&lt; {{ $station->detection_distance_cm }} cm)
-            </p>
         </div>
 
         {{-- Card 4: Kipas & LED --}}
@@ -84,9 +73,6 @@
                     {{ $station->fan_is_on ? 'ON' : 'OFF' }}
                 </span>
             </div>
-            <p id="live-fan-subtitle" class="mt-2 text-xs text-[#6e7773]">
-                {{ $station->fan_is_on ? 'Relay aktif' : 'Relay mati' }} &middot; LED {{ strtolower($station->led_label) }}
-            </p>
         </div>
     </div>
 
@@ -123,6 +109,12 @@
 
                 $polylinePoints = collect($points)->map(fn ($p) => "{$p['x']},{$p['y']}")->implode(' ');
                 $lastPoint = end($points) ?: ['x' => 545, 'y' => $mapY($station->current_humidity)];
+                $chartTimeLabels = [
+                    $chartReadings->first()?->recorded_at?->format('H:i') ?? now()->subMinutes(20)->format('H:i'),
+                    $chartReadings->get((int) floor(max(0, $chartReadings->count() - 1) / 2))?->recorded_at?->format('H:i')
+                        ?? now()->subMinutes(10)->format('H:i'),
+                    $chartReadings->last()?->recorded_at?->format('H:i') ?? now()->format('H:i'),
+                ];
             @endphp
 
             <div class="w-full overflow-x-auto">
@@ -188,9 +180,9 @@
                     @endif
 
                     {{-- X-Axis Timestamps --}}
-                    <text x="55" y="224" class="fill-[#6e7773] text-[11px]">08:00</text>
-                    <text x="215" y="224" class="fill-[#6e7773] text-[11px]">08:10</text>
-                    <text x="375" y="224" class="fill-[#6e7773] text-[11px]">08:20</text>
+                    <text x="55" y="224" class="fill-[#6e7773] text-[11px]">{{ $chartTimeLabels[0] }}</text>
+                    <text x="215" y="224" class="fill-[#6e7773] text-[11px]">{{ $chartTimeLabels[1] }}</text>
+                    <text x="375" y="224" class="fill-[#6e7773] text-[11px]">{{ $chartTimeLabels[2] }}</text>
                     <text x="545" y="224" text-anchor="middle" class="fill-[#6e7773] text-[11px]">Sekarang</text>
                 </svg>
             </div>
@@ -200,9 +192,6 @@
         <div class="lg:col-span-4 bg-white rounded-2xl p-5 sm:p-6 border border-[#e9e9e4] shadow-[0_1px_2px_rgba(0,0,0,0.02)] flex flex-col justify-between">
             <div>
                 <h3 class="text-base font-bold text-[#14231d]">Siklus Pengeringan</h3>
-                <p class="text-xs text-[#6e7773] mt-1">
-                    Target: kelembapan &lt; {{ $station->fan_off_humidity }}%
-                </p>
 
                 {{-- Progress Bar --}}
                 <div class="mt-4 w-full h-3 rounded-full bg-[#e9e9e4] overflow-hidden">
@@ -214,8 +203,8 @@
                 </div>
 
                 <div class="mt-2.5 flex items-center justify-between text-xs text-[#6e7773]">
-                    <span>Mulai <span id="cycle-start-time">{{ $activeCycle ? $activeCycle->start_time : '08:04' }}</span></span>
-                    <span>Berjalan <span id="cycle-duration">{{ $activeCycle ? $activeCycle->duration_minutes : 18 }}</span> menit</span>
+                    <span>Mulai <span id="cycle-start-time">{{ $activeCycle ? $activeCycle->start_time : '—' }}</span></span>
+                    <span>Berjalan <span id="cycle-duration">{{ $activeCycle ? $activeCycle->duration_minutes : 0 }}</span> menit</span>
                 </div>
 
                 {{-- Cycle Key-Value Details --}}
@@ -223,7 +212,7 @@
                     <div class="flex items-center justify-between">
                         <dt class="text-[#6e7773]">Kelembapan awal</dt>
                         <dd id="cycle-initial-rh" class="font-bold text-[#14231d]">
-                            {{ $activeCycle ? number_format($activeCycle->initial_humidity, 0) : 79 }}%
+                            {{ $activeCycle ? number_format($activeCycle->initial_humidity, 0).'%' : '—' }}
                         </dd>
                     </div>
                     <div class="flex items-center justify-between">

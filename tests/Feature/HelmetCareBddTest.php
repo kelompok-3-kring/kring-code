@@ -127,21 +127,20 @@ class HelmetCareBddTest extends TestCase
     }
 
     /**
-     * Scenario 4: Operator inspects 7-day drying history and exports CSV.
+     * Scenario 4: Operator inspects an empty drying history and exports CSV.
      */
     public function test_scenario_operator_views_drying_history_and_exports_csv(): void
     {
-        // GIVEN 7 days of drying cycles exist in the database
+        // GIVEN no seeded drying cycles exist in the database
         // WHEN the operator visits Riwayat Pengeringan
         $response = $this->get(route('history.index'));
 
-        // THEN the 7-day KPIs (7 cycles, 33 mnt avg duration, 24 poin avg RH drop) and chart are shown
+        // THEN the empty history state and chart are shown
         $response->assertOk()
             ->assertSee('Riwayat Pengeringan')
             ->assertSee('Durasi Pengeringan per Hari')
-            ->assertSee('33')
-            ->assertSee('24')
-            ->assertSee('Menampilkan 1–4 dari 7');
+            ->assertSee('Tidak ada data siklus pengeringan yang sesuai dengan filter.')
+            ->assertSee('Menampilkan 0–0 dari 0');
 
         // AND WHEN the operator clicks "Ekspor CSV"
         $csvResponse = $this->get(route('history.export'));
@@ -151,7 +150,6 @@ class HelmetCareBddTest extends TestCase
         $this->assertStringContainsString('text/csv', (string) $csvResponse->headers->get('Content-Type'));
         $csvContent = $csvResponse->streamedContent();
         $this->assertStringContainsString('Tanggal,Mulai,Selesai', $csvContent);
-        $this->assertStringContainsString('26 Okt 2026', $csvContent);
     }
 
     /**
@@ -173,26 +171,25 @@ class HelmetCareBddTest extends TestCase
             'fan_off_humidity' => 50,
             'detection_distance_cm' => 12,
             'data_interval_seconds' => 5,
-            'auto_mode' => 1,
-            'notify_on_complete' => 1,
         ]);
 
         // THEN the new thresholds are saved to the database
-        $updateResponse->assertRedirect(route('settings.index'));
+        $updateResponse->assertRedirect(route('devices.index'));
         $this->assertDatabaseHas('stations', [
             'code' => 'station-01',
             'fan_on_humidity' => 70,
             'fan_off_humidity' => 50,
             'detection_distance_cm' => 12,
             'data_interval_seconds' => 5,
-            'notify_on_complete' => 1,
+            'auto_mode' => 1,
+            'notify_on_complete' => 0,
         ]);
 
         // AND WHEN the operator clicks "Kembalikan Default"
         $resetResponse = $this->post(route('settings.reset'));
 
         // THEN factory default thresholds (65%, 55%, 15 cm, 2 detik) are restored
-        $resetResponse->assertRedirect(route('settings.index'));
+        $resetResponse->assertRedirect(route('devices.index'));
         $this->assertDatabaseHas('stations', [
             'code' => 'station-01',
             'fan_on_humidity' => 65,
