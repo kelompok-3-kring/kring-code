@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Route;
 | 1. Dashboard Station (`/`)
 | 2. Riwayat Pengeringan (`/riwayat`)
 | 3. Perangkat (`/perangkat`)
-| 4. Pengaturan Ambang (`/pengaturan`)
+| 4. Pengaturan Ambang (embedded in `/perangkat`)
 |
 */
 
@@ -31,7 +31,6 @@ Route::prefix('riwayat')->name('history.')->group(function (): void {
 
 Route::prefix('perangkat')->name('devices.')->group(function (): void {
     Route::get('/', [DeviceController::class, 'index'])->name('index');
-    Route::post('/simulate', [DeviceController::class, 'simulate'])->name('simulate');
 });
 
 Route::prefix('pengaturan')->name('settings.')->group(function (): void {

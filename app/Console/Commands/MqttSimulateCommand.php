@@ -52,9 +52,16 @@ class MqttSimulateCommand extends Command
             'firmware_version' => 'v1.4.2-esp32',
         ];
 
+        $station = $telemetryIngestion->getOrSeedDefaultStation($payload['station_code']);
+
+        if (! $station->auto_mode) {
+            $station->update(['auto_mode' => true]);
+            $station->refresh();
+        }
+
         $topic = $mqttBroker->topicFor($payload['station_code'], 'telemetry');
         $mqttBroker->publish($topic, $payload);
-        $station = $telemetryIngestion->ingest($payload);
+        $station = $telemetryIngestion->ingest($payload, $station);
 
         $this->info(sprintf(
             'Simulated ESP32 Telemetry [%s] -> RH: %.1f%% | Suhu: %.1f°C | Jarak: %.1f cm | Kipas: %s | LED: %s',

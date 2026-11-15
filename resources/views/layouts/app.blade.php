@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title ?? 'Dashboard Station' }} — Helmet Care Dehumidifier Station</title>
+    <title>{{ $title ?? 'Dashboard Station' }} — KRING</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
@@ -34,13 +34,13 @@
         <div id="mobile-menu-backdrop" class="fixed inset-0 z-50 bg-black/50 hidden lg:hidden transition-opacity"></div>
         <aside
             id="mobile-sidebar"
-            class="fixed inset-y-0 left-0 z-50 w-64 bg-[#0d231c] text-white transform -translate-x-full transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-auto lg:w-60 xl:w-64 lg:shrink-0 flex flex-col justify-between"
+            class="fixed inset-y-0 left-0 z-50 w-64 bg-[#0d231c] text-white transform -translate-x-full transition-transform duration-200 ease-in-out lg:translate-x-0 lg:w-60 xl:w-64 lg:h-screen lg:overflow-y-auto lg:shrink-0 flex flex-col justify-between"
         >
             <div class="p-5 lg:p-6">
                 {{-- Brand Header --}}
                 <div class="flex items-center justify-between mb-8">
                     <a href="{{ route('dashboard') }}" class="block">
-                        <h1 class="text-xl font-bold tracking-tight text-white">Helmet Care</h1>
+                        <h1 class="text-xl font-bold tracking-tight text-white">KRING</h1>
                         <p class="text-xs text-[#8aa399] mt-0.5">Dehumidifier Station</p>
                     </a>
                     <button
@@ -61,7 +61,6 @@
                         ['label' => 'Dashboard', 'route' => 'dashboard', 'active' => request()->routeIs('dashboard')],
                         ['label' => 'Riwayat Pengeringan', 'route' => 'history.index', 'active' => request()->routeIs('history.*')],
                         ['label' => 'Perangkat', 'route' => 'devices.index', 'active' => request()->routeIs('devices.*')],
-                        ['label' => 'Pengaturan Ambang', 'route' => 'settings.index', 'active' => request()->routeIs('settings.*')],
                     ];
                 @endphp
 
@@ -79,20 +78,10 @@
                 </nav>
             </div>
 
-            {{-- Footer MQTT & Hardware Info inside Sidebar --}}
-            <div class="p-5 lg:p-6 border-t border-[#193b30] text-xs text-[#7c998e] space-y-1">
-                <div class="flex items-center gap-2 text-[#a9c4b9] font-medium">
-                    <span class="h-2 w-2 rounded-full bg-[#22c55e] animate-pulse"></span>
-                    <span>MQTT Telemetry Ready</span>
-                </div>
-                <p class="truncate" title="{{ config('mqtt.topic_prefix') }}/{{ config('mqtt.default_station') }}">
-                    Topic: {{ config('mqtt.topic_prefix') }}/station-01
-                </p>
-            </div>
         </aside>
 
         {{-- Main Content Column --}}
-        <main class="flex-1 min-w-0 px-4 py-6 sm:px-6 lg:px-9 lg:py-8 pb-24 lg:pb-10">
+        <main class="flex-1 min-w-0 px-4 py-6 sm:px-6 lg:ml-60 lg:px-9 lg:py-8 xl:ml-64 pb-24 lg:pb-10">
             <div class="max-w-6xl mx-auto">
                 {{-- Flash Notification Banner --}}
                 @if (session('status'))
@@ -130,7 +119,7 @@
         {{-- Mobile Bottom Quick Navigation Bar (< lg) --}}
         <nav
             aria-label="Navigasi Bawah Mobile"
-            class="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-[#0d231c] border-t border-[#1c3f33] px-2 py-1.5 grid grid-cols-4 gap-1 text-center"
+            class="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-[#0d231c] border-t border-[#1c3f33] px-2 py-1.5 grid grid-cols-3 gap-1 text-center"
         >
             @foreach ($navItems as $item)
                 <a
@@ -139,7 +128,7 @@
                         ? 'bg-[#187a5b] text-white font-semibold'
                         : 'text-[#a3bcb2] hover:text-white' }}"
                 >
-                    {{ $item['label'] === 'Riwayat Pengeringan' ? 'Riwayat' : ($item['label'] === 'Pengaturan Ambang' ? 'Ambang' : $item['label']) }}
+                    {{ $item['label'] === 'Riwayat Pengeringan' ? 'Riwayat' : $item['label'] }}
                 </a>
             @endforeach
         </nav>

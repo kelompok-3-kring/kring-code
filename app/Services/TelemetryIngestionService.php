@@ -72,14 +72,19 @@ class TelemetryIngestionService
             $helmetDetected = $distanceCm < (float) $station->detection_distance_cm;
 
             $fanIsOn = (bool) $station->fan_is_on;
+            $previousFanIsOn = $fanIsOn;
             $ledStatus = (string) $station->led_status;
             $dryingState = (string) $station->drying_state;
 
             /** @var DryingCycle|null $activeCycle */
             $activeCycle = $station->activeCycle()->first();
 
-            if (! $helmetDetected) {
-                // Helmet removed -> Standby state
+            if (! $station->auto_mode) {
+                // MODE MANUAL: Pertahankan status kipas pilihan user dari dashboard
+                $ledStatus = $fanIsOn ? 'red_blinking' : ($helmetDetected ? 'green_solid' : 'off');
+                $dryingState = $fanIsOn ? 'drying' : ($helmetDetected ? 'completed' : 'standby');
+            } elseif (! $helmetDetected) {
+                // MODE OTOMATIS + Helm diangkat -> Standby state
                 $fanIsOn = false;
                 $ledStatus = 'off';
                 $dryingState = 'standby';
@@ -104,7 +109,7 @@ class TelemetryIngestionService
                     ]);
                 }
             } else {
-                // Helmet is present (< detection_distance_cm)
+                // MODE OTOMATIS + Helm terdeteksi (< detection_distance_cm)
                 if (! $wasHelmetDetected) {
                     DeviceActivityLog::create([
                         'station_id' => $station->id,
@@ -213,6 +218,18 @@ class TelemetryIngestionService
             ]);
             $station->save();
 
+            if ($fanIsOn !== $previousFanIsOn) {
+                try {
+                    $this->mqttBroker->publishCommand($station, [
+                        'action' => 'set_fan',
+                        'fan_is_on' => $fanIsOn,
+                        'led_status' => $ledStatus,
+                    ]);
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            }
+
             // Record time-series sensor reading
             SensorReading::create([
                 'station_id' => $station->id,
@@ -241,6 +258,7 @@ class TelemetryIngestionService
         if (! $newFanState) {
             // Turning fan OFF manually
             $station->update([
+                'auto_mode' => false,
                 'fan_is_on' => false,
                 'drying_state' => $station->helmet_detected ? 'completed' : 'standby',
                 'led_status' => $station->helmet_detected ? 'green_solid' : 'off',
@@ -264,6 +282,7 @@ class TelemetryIngestionService
         } else {
             // Turning fan ON manually
             $station->update([
+                'auto_mode' => false,
                 'fan_is_on' => true,
                 'fan_turned_on_at' => now(),
                 'drying_state' => 'drying',
@@ -292,11 +311,17 @@ class TelemetryIngestionService
         }
 
         // Publish relay command to ESP32 via MQTT
-        $this->mqttBroker->publishCommand($station, [
-            'action' => 'set_fan',
-            'fan_is_on' => $newFanState,
-            'led_status' => $station->led_status,
-        ]);
+        try {
+            $this->mqttBroker->publishCommand($station, [
+                'action' => 'set_fan',
+                'fan_is_on' => $newFanState,
+                'led_status' => $station->led_status,
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return $station->fresh(['activeCycle']);
 
         return $station->fresh(['activeCycle']);
     }

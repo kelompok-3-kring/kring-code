@@ -129,8 +129,8 @@ class Station extends Model
     public function getLedLabelAttribute(): string
     {
         return match ($this->led_status) {
-            'red_blinking' => 'Merah berkedip',
-            'green_solid' => 'Hijau menyala',
+            'red_blinking' => 'Merah',
+            'green_solid' => 'Hijau',
             default => 'Mati',
         };
     }
