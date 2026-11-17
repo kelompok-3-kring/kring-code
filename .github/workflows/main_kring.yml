@@ -40,12 +40,7 @@ jobs:
 
       # 5. Install frontend dependencies
       - name: Install NPM dependencies
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install --no-audit --no-fund
-          fi
+        run: npm ci --no-audit --no-fund
 
       # 6. Build frontend assets using Vite
       - name: Build frontend assets
