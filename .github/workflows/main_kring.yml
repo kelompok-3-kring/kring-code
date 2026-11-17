@@ -1,0 +1,61 @@
+
+name: Build and deploy Laravel 13 to Azure Web App - kring
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Get source code from GitHub
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Setup PHP
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, bcmath, ctype, curl, dom, fileinfo, intl, pdo_mysql, xml
+          coverage: none
+
+      # 3. Install Laravel production dependencies
+      - name: Install Composer dependencies
+        run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+
+      # 4. Setup Node.js
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      # 5. Install frontend dependencies
+      - name: Install NPM dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install --no-audit --no-fund
+          fi
+
+      # 6. Build frontend assets using Vite
+      - name: Build frontend assets
+        run: npm run build
+
+      # 7. Deploy application to Azure
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: kring
+          slot-name: Production
+          package: .
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
