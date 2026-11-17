@@ -32,10 +32,10 @@ jobs:
         run: composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
       # 4. Setup Node.js
-      - name: Setup Node.js 22
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
 
       # 5. Install frontend dependencies
