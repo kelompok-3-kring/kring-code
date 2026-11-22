@@ -18,10 +18,10 @@ use Illuminate\Http\Request;
  * - Configure upper RH threshold (`fan_on_humidity`, default 65%)
  * - Configure lower RH threshold (`fan_off_humidity`, default 55%)
  * - Configure ultrasonic helmet detection distance (`detection_distance_cm`, default 15 cm)
- * - Configure ESP32 telemetry transmission interval (`data_interval_seconds`, default 2 s)
+ * - Configure ESP8266 telemetry transmission interval (`data_interval_seconds`, default 2 s)
  * - Keep automatic mode enabled and completion notifications disabled
  * - Reset settings to factory defaults (`Kembalikan Default`)
- * - Publish updated thresholds to the ESP32 via MQTT
+ * - Publish updated thresholds to the ESP8266 via MQTT
  */
 class ThresholdSettingController extends Controller
 {
@@ -39,7 +39,7 @@ class ThresholdSettingController extends Controller
     }
 
     /**
-     * Validate and save updated threshold settings, then publish to ESP32 over MQTT.
+     * Validate and save updated threshold settings, then publish to ESP8266 over MQTT.
      */
     public function update(Request $request): RedirectResponse
     {
@@ -75,12 +75,15 @@ class ThresholdSettingController extends Controller
             'occurred_at' => now(),
         ]);
 
-        // Synchronize new thresholds with the ESP32 over MQTT
-        $this->mqttBroker->publishThresholdConfig($station);
+        // Synchronize new thresholds with the ESP8266 over MQTT
+        $published = $this->mqttBroker->publishThresholdConfig($station);
+        $message = $published
+            ? 'Pengaturan ambang berhasil disimpan dan disinkronkan ke ESP8266.'
+            : 'Pengaturan tersimpan, tetapi sinkronisasi MQTT gagal. Periksa koneksi broker.';
 
         return redirect()
             ->route('devices.index')
-            ->with('status', 'Pengaturan ambang berhasil disimpan dan disinkronkan ke ESP32.');
+            ->with($published ? 'status' : 'warning', $message);
     }
 
     /**
@@ -98,10 +101,13 @@ class ThresholdSettingController extends Controller
             'occurred_at' => now(),
         ]);
 
-        $this->mqttBroker->publishThresholdConfig($station);
+        $published = $this->mqttBroker->publishThresholdConfig($station);
+        $message = $published
+            ? 'Pengaturan ambang telah dikembalikan ke nilai default (65% / 55% / 15 cm / 2 detik).'
+            : 'Default tersimpan, tetapi sinkronisasi MQTT gagal. Periksa koneksi broker.';
 
         return redirect()
             ->route('devices.index')
-            ->with('status', 'Pengaturan ambang telah dikembalikan ke nilai default (65% / 55% / 15 cm / 2 detik).');
+            ->with($published ? 'status' : 'warning', $message);
     }
 }

@@ -1,6 +1,6 @@
 # Helmet Care — Dehumidifier Station (Web & IoT Platform)
 
-A **Laravel 13.x (Blade MVC)** monitoring and control web platform for the **Helmet Care Dehumidifier Station** embedded IoT system powered by an **ESP32** microcontroller, **DHT22** temperature & humidity sensor, **HC-SR04** ultrasonic distance sensor, **Relay Fan** module, and **Status LED** indicator.
+A **Laravel 13.x (Blade MVC)** monitoring and control web platform for the **Helmet Care Dehumidifier Station** embedded IoT system powered by an **ESP8266** microcontroller, **DHT22** temperature & humidity sensor, **HC-SR04** ultrasonic distance sensor, **Relay Fan** module, and **Status LED** indicator.
 
 ---
 
@@ -17,12 +17,12 @@ A **Laravel 13.x (Blade MVC)** monitoring and control web platform for the **Hel
    - **Daily Drying Duration Bar Chart** (teal bars for completed cycles, orange bar for active cycle).
    - **CSV Export** (`/riwayat/export`) and paginated history table.
 3. **Devices & Diagnostics (`/perangkat`)**
-   - **ESP32 Station 01** connectivity banner and diagnostics for all 4 hardware components (`HC-SR04`, `DHT22`, `Relay Module`, `Status LED`).
+   - **ESP8266 Station 01** connectivity banner and diagnostics for all 4 hardware components (`HC-SR04`, `DHT22`, `Relay Module`, `Status LED`).
    - Wi-Fi network & MQTT metadata (`SSID`, `RSSI dBm`, `Server Endpoint`, `MQTT Topic`, `Firmware Version`) and chronological **Device Activity Log**.
-   - Interactive **Web MQTT Telemetry Simulator** to test website reactions before physical ESP32 hardware is connected.
+   - Interactive **Web MQTT Telemetry Simulator** to test website reactions before physical ESP8266 hardware is connected.
 4. **Threshold Settings (`/pengaturan`)**
    - Configurable hysteresis thresholds (`Fan ON above % RH`, `Fan OFF below % RH`, `Helmet detection distance cm`, `Telemetry interval seconds`).
-   - **Operation Mode** controls (`Automatic mode` & completion notification) and **Restore Defaults** button that syncs configuration to the ESP32 over MQTT.
+   - **Operation Mode** controls (`Automatic mode` & completion notification) and **Restore Defaults** button that syncs configuration to the ESP8266 over MQTT.
 
 ---
 
@@ -32,7 +32,7 @@ A **Laravel 13.x (Blade MVC)** monitoring and control web platform for the **Hel
 app/
 ├── Console/Commands/
 │   ├── MqttListenCommand.php          # MQTT subscriber daemon (`php artisan mqtt:listen`)
-│   └── MqttSimulateCommand.php        # CLI ESP32 payload simulator (`php artisan mqtt:simulate`)
+│   └── MqttSimulateCommand.php        # CLI ESP8266 payload simulator (`php artisan mqtt:simulate`)
 ├── Http/Controllers/
 │   ├── Api/TelemetryController.php    # IoT JSON endpoints (`/api/iot/telemetry`, `/api/iot/state`, `/api/iot/config`)
 │   ├── DashboardController.php        # Main Dashboard Station & manual fan toggle
@@ -53,11 +53,11 @@ app/
 
 | Direction | MQTT Topic | Description |
 | :--- | :--- | :--- |
-| **ESP32 &rarr; Server** | `helmet-care/stations/station-01/telemetry` | Publishes DHT22 & HC-SR04 sensor readings every `N` seconds |
-| **Server &rarr; ESP32** | `helmet-care/stations/station-01/commands` | Publishes manual fan relay (`ON`/`OFF`) & LED commands |
-| **Server &rarr; ESP32** | `helmet-care/stations/station-01/config` | Syncs updated hysteresis thresholds (% RH, distance cm, interval) |
+| **ESP8266 &rarr; Server** | `helmet-care/stations/station-01/telemetry` | Publishes DHT22 & HC-SR04 sensor readings every `N` seconds |
+| **Server &rarr; ESP8266** | `helmet-care/stations/station-01/commands` | Publishes manual fan relay (`ON`/`OFF`) & LED commands |
+| **Server &rarr; ESP8266** | `helmet-care/stations/station-01/config` | Syncs updated hysteresis thresholds (% RH, distance cm, interval) |
 
-### Example JSON Payload from ESP32 (MQTT or HTTP `POST /api/iot/telemetry`)
+### Example JSON Payload from ESP8266 (MQTT or HTTP `POST /api/iot/telemetry`)
 
 ```json
 {
@@ -96,16 +96,16 @@ app/
 
 ## Quick Commands to Run & Test
 
-Copy and run the following commands in your terminal to start the web server, simulate ESP32 MQTT telemetry, and run the BDD test suite:
+Copy and run the following commands in your terminal to start the web server, simulate ESP8266 MQTT telemetry, and run the BDD test suite:
 
 ```bash
 # Start the local web server (http://127.0.0.1:8000)
 php artisan serve
 
-# Simulate an ESP32 sending MQTT telemetry from CLI
+# Simulate an ESP8266 sending MQTT telemetry from CLI
 php artisan mqtt:simulate --humidity=58.0 --temperature=31.2 --distance=8.0
 
-# Start the background MQTT topic subscriber (when connecting real ESP32 hardware)
+# Start the background MQTT topic subscriber (when connecting real ESP8266 hardware)
 php artisan mqtt:listen
 
 # Run the BDD feature test suite

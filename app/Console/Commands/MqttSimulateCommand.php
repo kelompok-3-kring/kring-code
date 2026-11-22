@@ -11,7 +11,7 @@ use Illuminate\Console\Command;
 /**
  * Artisan Command: `php artisan mqtt:simulate`
  *
- * Simulates an ESP32 station transmitting DHT22 (humidity & temperature) and
+ * Simulates an ESP8266 station transmitting DHT22 (humidity & temperature) and
  * HC-SR04 (ultrasonic distance) sensor telemetry for testing the web dashboard
  * before physical hardware is connected.
  */
@@ -33,7 +33,7 @@ class MqttSimulateCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Simulate an ESP32 telemetry payload for testing MQTT/IoT ingestion';
+    protected $description = 'Simulate an ESP8266 telemetry payload for testing MQTT/IoT ingestion';
 
     /**
      * Execute the console command.
@@ -64,7 +64,7 @@ class MqttSimulateCommand extends Command
         $station = $telemetryIngestion->ingest($payload, $station);
 
         $this->info(sprintf(
-            'Simulated ESP32 Telemetry [%s] -> RH: %.1f%% | Suhu: %.1f°C | Jarak: %.1f cm | Kipas: %s | LED: %s',
+            'Simulated ESP8266 Telemetry [%s] -> RH: %.1f%% | Suhu: %.1f°C | Jarak: %.1f cm | Kipas: %s | LED: %s',
             $station->name,
             $station->current_humidity,
             $station->current_temperature,

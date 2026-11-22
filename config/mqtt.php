@@ -3,11 +3,11 @@
 declare(strict_types=1);
 
 /**
- * MQTT Configuration for Helmet Care Dehumidifier Station (ESP32 IoT).
+ * MQTT Configuration for Helmet Care Dehumidifier Station (ESP8266 IoT).
  *
  * This configuration defines the connection parameters and topic naming conventions
  * used to exchange real-time sensor telemetry (DHT22 & HC-SR04), actuator commands
- * (Relay fan control & LED indicators), and threshold settings with ESP32 stations.
+ * (Relay fan control & LED indicators), and threshold settings with ESP8266 stations.
  *
  * Security Note:
  * Never hardcode broker credentials or API tokens in this file. Always use environment
@@ -45,10 +45,10 @@ return [
     |--------------------------------------------------------------------------
     |
     | Topics follow the pattern: `{topic_prefix}/{station_code}/{channel}`
-    | - Telemetry (ESP32 -> Server): `helmet-care/stations/station-01/telemetry`
-    | - Status    (ESP32 -> Server): `helmet-care/stations/station-01/status`
-    | - Commands  (Server -> ESP32): `helmet-care/stations/station-01/commands`
-    | - Config    (Server -> ESP32): `helmet-care/stations/station-01/config`
+    | - Telemetry (ESP8266 -> Server): `helmet-care/stations/station-01/telemetry`
+    | - Status    (ESP8266 -> Server): `helmet-care/stations/station-01/status`
+    | - Commands  (Server -> ESP8266): `helmet-care/stations/station-01/commands`
+    | - Config    (Server -> ESP8266): `helmet-care/stations/station-01/config`
     |
     */
     'topic_prefix' => env('MQTT_TOPIC_PREFIX', 'helmet-care/stations'),
@@ -59,7 +59,7 @@ return [
     | Optional HTTP/Webhook Ingestion Token
     |--------------------------------------------------------------------------
     |
-    | Optional shared secret header (`X-IoT-Token`) when the ESP32 or an MQTT
+    | Optional shared secret header (`X-IoT-Token`) when the ESP8266 or an MQTT
     | bridge forwards telemetry over HTTP POST `/api/iot/telemetry`.
     |
     */

@@ -13,9 +13,9 @@ use Illuminate\Http\Request;
  * TelemetryController
  *
  * Provides REST/JSON endpoints for:
- * 1. ESP32 or MQTT Bridge telemetry ingestion (`POST /api/iot/telemetry`)
+ * 1. ESP8266 or MQTT Bridge telemetry ingestion (`POST /api/iot/telemetry`)
  * 2. Real-time browser dashboard polling every N seconds (`GET /api/iot/state`)
- * 3. ESP32 startup threshold configuration sync (`GET /api/iot/config`)
+ * 3. ESP8266 startup threshold configuration sync (`GET /api/iot/config`)
  */
 class TelemetryController extends Controller
 {
@@ -24,7 +24,7 @@ class TelemetryController extends Controller
     ) {}
 
     /**
-     * Ingest a sensor reading payload from an ESP32 station or MQTT webhook bridge.
+     * Ingest a sensor reading payload from an ESP8266 station or MQTT webhook bridge.
      */
     public function store(Request $request): JsonResponse
     {
@@ -57,7 +57,7 @@ class TelemetryController extends Controller
                 'current_temperature' => $station->current_temperature,
                 'current_distance_cm' => $station->current_distance_cm,
                 'helmet_detected' => $station->helmet_detected,
-                'fan_is_on' => $station->fan_is_on,
+                'fan_is_on' => $station->status === 'offline' ? null : $station->fan_is_on,
                 'led_status' => $station->led_status,
                 'led_label' => $station->led_label,
                 'drying_state' => $station->drying_state,
@@ -95,11 +95,11 @@ class TelemetryController extends Controller
                 'status' => $station->status,
                 'drying_state' => $station->drying_state,
                 'drying_state_label' => $station->drying_state_label,
-                'current_humidity' => round($station->current_humidity, 0),
-                'current_temperature' => number_format($station->current_temperature, 1, ',', '.'),
-                'current_distance_cm' => round($station->current_distance_cm, 0),
+                'current_humidity' => $station->status === 'offline' ? null : round($station->current_humidity, 0),
+                'current_temperature' => $station->status === 'offline' ? null : number_format($station->current_temperature, 1, ',', '.'),
+                'current_distance_cm' => $station->status === 'offline' ? null : round($station->current_distance_cm, 0),
                 'helmet_detected' => $station->helmet_detected,
-                'fan_is_on' => $station->fan_is_on,
+                'fan_is_on' => $station->status === 'offline' ? null : $station->fan_is_on,
                 'led_status' => $station->led_status,
                 'led_label' => $station->led_label,
                 'fan_on_humidity' => $station->fan_on_humidity,
@@ -108,7 +108,7 @@ class TelemetryController extends Controller
                 'data_interval_seconds' => $station->data_interval_seconds,
                 'auto_mode' => $station->auto_mode,
                 'progress_percent' => $station->calculateDryingProgress($activeCycle),
-                'last_seen_human' => $station->last_seen_at ? $station->last_seen_at->diffForHumans() : '2 detik lalu',
+                'last_seen_human' => $station->last_seen_at ? $station->last_seen_at->diffForHumans() : 'Belum pernah menerima telemetry',
             ],
             'active_cycle' => $activeCycle ? [
                 'started_at' => $activeCycle->start_time,
@@ -122,11 +122,15 @@ class TelemetryController extends Controller
                 'humidity' => round((float) $reading->humidity, 1),
                 'temperature' => round((float) $reading->temperature, 1),
             ]),
+        ])->withHeaders([
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
         ]);
     }
 
     /**
-     * Return threshold settings for ESP32 boot/sync requests.
+     * Return threshold settings for ESP8266 boot/sync requests.
      */
     public function config(Request $request): JsonResponse
     {

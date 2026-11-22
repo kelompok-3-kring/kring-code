@@ -9,6 +9,7 @@ use App\Services\TelemetryIngestionService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -39,18 +40,18 @@ class DryingHistoryController extends Controller
 
         $filteredQuery = $this->buildFilteredQuery($station->id, $range, $status);
 
-        // Calculate KPI summary metrics across the filtered dataset
-        $allMatching = (clone $filteredQuery)->get();
-        $totalCycles = $allMatching->count();
+        $totalCycles = (clone $filteredQuery)->count();
         $avgDuration = $totalCycles > 0
-            ? (int) round((float) $allMatching->avg('duration_minutes'))
+            ? (int) round((float) (clone $filteredQuery)->avg('duration_minutes'))
             : 0;
         $avgRhDrop = $totalCycles > 0
-            ? (int) round((float) $allMatching->avg(fn (DryingCycle $c) => $c->humidity_drop))
+            ? (int) round((float) (clone $filteredQuery)
+                ->whereNotNull('final_humidity')
+                ->avg(DB::raw('initial_humidity - final_humidity')))
             : 0;
 
         // Bar chart: chronological 7 most recent daily cycles
-        $chartCycles = $station->dryingCycles()
+        $chartCycles = (clone $filteredQuery)
             ->orderByDesc('started_at')
             ->limit(7)
             ->get()
@@ -141,11 +142,9 @@ class DryingHistoryController extends Controller
             $query->where('status', $status);
         }
 
-        // Anchor relative date filters to the latest recorded cycle date so seeded historical dates work seamlessly
-        $latestCycleDate = DryingCycle::where('station_id', $stationId)->max('started_at');
-        if ($latestCycleDate && in_array($range, ['7d', '30d'], true)) {
+        if (in_array($range, ['7d', '30d'], true)) {
             $days = $range === '7d' ? 7 : 30;
-            $cutoff = Carbon::parse($latestCycleDate)->subDays($days)->startOfDay();
+            $cutoff = Carbon::now()->subDays($days)->startOfDay();
             $query->where('started_at', '>=', $cutoff);
         }
 

@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 /**
  * Station Model
  *
- * Represents a physical ESP32 Helmet Care Dehumidifier Station.
+ * Represents a physical ESP8266 Helmet Care Dehumidifier Station.
  * Stores real-time telemetry snapshots (DHT22 & HC-SR04), actuator status
  * (Relay fan & LED indicator), network metadata, and hysteresis threshold settings.
  */
@@ -87,6 +87,18 @@ class Station extends Model
             'auto_mode' => 'boolean',
             'notify_on_complete' => 'boolean',
         ];
+    }
+
+    /**
+     * Return a runtime status based on recent telemetry activity.
+     */
+    public function getStatusAttribute(string $value): string
+    {
+        if (! $this->last_seen_at) {
+            return 'offline';
+        }
+
+        return $this->last_seen_at->diffInSeconds(now()) <= 60 ? 'online' : 'offline';
     }
 
     /**

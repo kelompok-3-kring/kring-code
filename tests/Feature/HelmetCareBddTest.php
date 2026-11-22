@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\Station;
+use Carbon\Carbon;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -31,9 +32,10 @@ class HelmetCareBddTest extends TestCase
      */
     public function test_scenario_operator_views_realtime_dashboard_station(): void
     {
-        // GIVEN Station 01 is online and actively drying a helmet at 61% RH
+        // GIVEN a fresh Station 01 has not received telemetry
         $station = Station::where('code', 'station-01')->firstOrFail();
-        $this->assertTrue($station->fan_is_on);
+        $this->assertSame('offline', $station->status);
+        $this->assertFalse($station->fan_is_on);
 
         // WHEN the operator visits the Dashboard page
         $response = $this->get(route('dashboard'));
@@ -41,27 +43,34 @@ class HelmetCareBddTest extends TestCase
         // THEN the dashboard renders all live telemetry cards, chart, and daily logs
         $response->assertOk()
             ->assertSee('Dashboard Station')
-            ->assertSee('ESP32 Online')
-            ->assertSee('Sedang Mengeringkan')
+            ->assertSee('ESP8266 Offline')
+            ->assertSee('Standby')
             ->assertSee('Kelembapan Saat Ini')
-            ->assertSee('61')
-            ->assertSee('31,4')
+            ->assertSee('Tidak diketahui')
             ->assertSee('Grafik Kelembapan Real-Time')
             ->assertSee('Siklus Pengeringan')
-            ->assertSee('Matikan Kipas Manual')
+            ->assertSee('Perangkat Offline')
             ->assertSee('Log Pengeringan Harian');
     }
 
     /**
-     * Scenario 2: ESP32 telemetry triggers hysteresis drying completion and standby mode.
+     * Scenario 2: ESP8266 telemetry triggers hysteresis drying completion and standby mode.
      */
     public function test_scenario_esp32_telemetry_completes_drying_cycle_and_enters_standby(): void
     {
-        // GIVEN Station 01 is running an active drying cycle (fan ON, RH 61%, threshold OFF < 55%)
+        // GIVEN the ESP8266 connects and starts an active drying cycle
+        $this->postJson(route('api.iot.telemetry.store'), [
+            'station_code' => 'station-01',
+            'humidity' => 68.0,
+            'temperature' => 31.4,
+            'distance_cm' => 8.0,
+        ])->assertOk()
+            ->assertJsonPath('station.fan_is_on', true);
         $station = Station::where('code', 'station-01')->firstOrFail();
-        $this->assertSame('drying', $station->drying_state);
+        $this->assertSame('online', $station->status);
+        $this->assertTrue($station->fan_is_on);
 
-        // WHEN the ESP32 publishes telemetry inside the hysteresis band (58% RH, between 55% and 65%)
+        // WHEN the ESP8266 publishes telemetry inside the hysteresis band (58% RH, between 55% and 65%)
         $inBandResponse = $this->postJson(route('api.iot.telemetry.store'), [
             'station_code' => 'station-01',
             'humidity' => 58.0,
@@ -74,7 +83,7 @@ class HelmetCareBddTest extends TestCase
             ->assertJsonPath('station.fan_is_on', true)
             ->assertJsonPath('station.led_status', 'red_blinking');
 
-        // WHEN the ESP32 publishes telemetry below the dry threshold (53% RH < 55%)
+        // WHEN the ESP8266 publishes telemetry below the dry threshold (53% RH < 55%)
         $dryResponse = $this->postJson(route('api.iot.telemetry.store'), [
             'station_code' => 'station-01',
             'humidity' => 53.0,
@@ -111,7 +120,11 @@ class HelmetCareBddTest extends TestCase
     {
         // GIVEN the relay fan is initially ON
         $station = Station::where('code', 'station-01')->firstOrFail();
-        $this->assertTrue($station->fan_is_on);
+        $station->update([
+            'status' => 'online',
+            'last_seen_at' => Carbon::now(),
+            'fan_is_on' => true,
+        ]);
 
         // WHEN the operator clicks "Matikan Kipas Manual"
         $response = $this->post(route('dashboard.toggle-fan'));
@@ -124,6 +137,52 @@ class HelmetCareBddTest extends TestCase
             'station_id' => $station->id,
             'event_type' => 'manual_override',
         ]);
+    }
+
+    public function test_station_status_is_offline_after_telemetry_timeout(): void
+    {
+        $station = Station::where('code', 'station-01')->firstOrFail();
+        $station->update([
+            'status' => 'online',
+            'last_seen_at' => Carbon::now()->subMinutes(2),
+        ]);
+
+        $this->assertSame('offline', $station->fresh()->status);
+    }
+
+    public function test_offline_station_reports_unknown_fan_and_rejects_manual_control(): void
+    {
+        $stateResponse = $this->getJson(route('api.iot.state'));
+        $stateResponse
+            ->assertOk()
+            ->assertJsonPath('station.status', 'offline')
+            ->assertJsonPath('station.fan_is_on', null)
+            ->assertJsonPath('station.current_distance_cm', null)
+            ->assertJsonPath('station.current_humidity', null);
+        $this->assertStringContainsString('no-store', (string) $stateResponse->headers->get('Cache-Control'));
+
+        $this->postJson(route('dashboard.toggle-fan'))
+            ->assertStatus(409)
+            ->assertJsonPath('fan_is_on', null);
+    }
+
+    public function test_live_state_reflects_new_telemetry_after_ingestion(): void
+    {
+        $this->postJson(route('api.iot.telemetry.store'), [
+            'station_code' => 'station-01',
+            'humidity' => 72.4,
+            'temperature' => 33.1,
+            'distance_cm' => 8.0,
+        ])->assertOk();
+
+        $stateResponse = $this->getJson(route('api.iot.state'));
+        $stateResponse
+            ->assertOk()
+            ->assertJsonPath('station.status', 'online')
+            ->assertJsonPath('station.current_humidity', 72)
+            ->assertJsonPath('station.current_temperature', '33,1')
+            ->assertJsonPath('station.fan_is_on', true);
+        $this->assertStringContainsString('no-store', (string) $stateResponse->headers->get('Cache-Control'));
     }
 
     /**
@@ -197,5 +256,22 @@ class HelmetCareBddTest extends TestCase
             'detection_distance_cm' => 15,
             'data_interval_seconds' => 2,
         ]);
+    }
+
+    public function test_high_threshold_values_are_visible_on_the_dashboard_chart(): void
+    {
+        $this->put(route('settings.update'), [
+            'fan_on_humidity' => 90,
+            'fan_off_humidity' => 85,
+            'detection_distance_cm' => 15,
+            'data_interval_seconds' => 2,
+        ])->assertRedirect(route('devices.index'));
+
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Batas nyala 90%', false)
+            ->assertSee('Batas kering 85%', false)
+            ->assertSee('100%', false)
+            ->assertSee('20%', false);
     }
 }

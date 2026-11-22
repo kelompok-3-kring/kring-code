@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * SensorReading Model
  *
- * Represents a single time-series telemetry reading captured by the ESP32
+ * Represents a single time-series telemetry reading captured by the ESP8266
  * from the DHT22 (temperature & relative humidity) and HC-SR04 (ultrasonic distance)
  * sensors, transmitted via MQTT or HTTP webhook.
  */
