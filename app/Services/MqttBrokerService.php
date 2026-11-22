@@ -13,13 +13,13 @@ use Throwable;
 /**
  * MqttBrokerService
  *
- * Manages MQTT communication between the Laravel application and ESP32
+ * Manages MQTT communication between the Laravel application and ESP8266
  * Helmet Care Dehumidifier Stations using the `php-mqtt/client` library.
  *
  * Topic Contract:
- * - `helmet-care/stations/{code}/telemetry` (ESP32 -> Laravel: JSON sensor readings)
- * - `helmet-care/stations/{code}/commands`  (Laravel -> ESP32: JSON relay/LED commands)
- * - `helmet-care/stations/{code}/config`    (Laravel -> ESP32: JSON threshold settings)
+ * - `helmet-care/stations/{code}/telemetry` (ESP8266 -> Laravel: JSON sensor readings)
+ * - `helmet-care/stations/{code}/commands`  (Laravel -> ESP8266: JSON relay/LED commands)
+ * - `helmet-care/stations/{code}/config`    (Laravel -> ESP8266: JSON threshold settings)
  */
 class MqttBrokerService
 {
@@ -34,7 +34,7 @@ class MqttBrokerService
     }
 
     /**
-     * Publish an actuator command (e.g. manual fan relay override) to an ESP32 station.
+     * Publish an actuator command (e.g. manual fan relay override) to an ESP8266 station.
      *
      * @param  array<string, mixed>  $commandPayload
      */
@@ -49,7 +49,7 @@ class MqttBrokerService
     }
 
     /**
-     * Publish updated hysteresis threshold settings to an ESP32 station.
+     * Publish updated hysteresis threshold settings to an ESP8266 station.
      */
     public function publishThresholdConfig(Station $station): bool
     {

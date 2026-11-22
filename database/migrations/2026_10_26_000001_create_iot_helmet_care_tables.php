@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Schema;
  * Creates the core domain tables:
  * 1. `stations`             - Device metadata, live sensor snapshot, Wi-Fi/MQTT info, and threshold configs.
  * 2. `drying_cycles`        - Historical and active drying sessions for daily logs and analytics.
- * 3. `sensor_readings`      - Time-series telemetry received from ESP32 (DHT22 + HC-SR04) via MQTT/HTTP.
+ * 3. `sensor_readings`      - Time-series telemetry received from ESP8266 (DHT22 + HC-SR04) via MQTT/HTTP.
  * 4. `device_activity_logs` - Chronological hardware and automation event logs.
  */
 return new class extends Migration
@@ -26,26 +26,26 @@ return new class extends Migration
             $table->id();
             $table->string('code')->unique()->comment('Unique identifier used in MQTT topics, e.g., station-01');
             $table->string('name')->default('Station 01');
-            $table->string('mcu_type')->default('ESP32');
-            $table->string('status')->default('online')->comment('online | offline');
-            $table->string('drying_state')->default('drying')->comment('drying | completed | standby');
+            $table->string('mcu_type')->default('ESP8266');
+            $table->string('status')->default('offline')->comment('online | offline');
+            $table->string('drying_state')->default('standby')->comment('drying | completed | standby');
 
             // Live sensor snapshot (DHT22 & HC-SR04)
-            $table->decimal('current_humidity', 5, 2)->default(61.00);
-            $table->decimal('current_temperature', 5, 2)->default(31.40);
-            $table->decimal('current_distance_cm', 5, 2)->default(8.00);
-            $table->boolean('helmet_detected')->default(true);
+            $table->decimal('current_humidity', 5, 2)->nullable();
+            $table->decimal('current_temperature', 5, 2)->nullable();
+            $table->decimal('current_distance_cm', 5, 2)->nullable();
+            $table->boolean('helmet_detected')->default(false);
 
             // Actuator states (Relay Fan & Status LED)
-            $table->boolean('fan_is_on')->default(true);
+            $table->boolean('fan_is_on')->default(false);
             $table->timestamp('fan_turned_on_at')->nullable();
-            $table->string('led_status')->default('red_blinking')->comment('red_blinking | green_solid | off');
+            $table->string('led_status')->default('off')->comment('red_blinking | green_solid | off');
             $table->string('ultrasonic_status')->default('Aktif');
             $table->string('dht_status')->default('Aktif');
 
             // Network & Firmware Metadata
-            $table->string('wifi_ssid')->default('HelmetCare-Lab-WiFi');
-            $table->integer('wifi_rssi')->default(-52);
+            $table->string('wifi_ssid')->nullable();
+            $table->integer('wifi_rssi')->nullable();
             $table->string('server_endpoint')->default('mqtt://broker.hivemq.com:1883 · /api/iot/telemetry');
             $table->string('firmware_version')->default('v1.4.2-esp32');
             $table->timestamp('last_seen_at')->nullable();

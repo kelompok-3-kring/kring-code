@@ -62,11 +62,29 @@ class DashboardController extends Controller
     public function toggleFan(Request $request): RedirectResponse|JsonResponse
     {
         $station = $this->telemetryService->getOrSeedDefaultStation();
-        $updatedStation = $this->telemetryService->toggleManualFan($station);
+        if ($station->status === 'offline') {
+            $message = 'Perangkat offline. Hidupkan ESP8266 dan tunggu telemetry diterima sebelum mengontrol kipas.';
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => $message,
+                    'fan_is_on' => null,
+                    'mqtt_published' => false,
+                ], 409);
+            }
 
-        $message = $updatedStation->fan_is_on
-            ? 'Kipas berhasil dinyalakan secara manual (perintah dikirim via MQTT).'
-            : 'Kipas berhasil dimatikan secara manual (perintah dikirim via MQTT).';
+            return redirect()
+                ->route('dashboard')
+                ->with('warning', $message);
+        }
+        $mqttPublished = true;
+        $updatedStation = $this->telemetryService->toggleManualFan($station, $mqttPublished);
+
+        $message = $mqttPublished
+            ? ($updatedStation->fan_is_on
+                ? 'Kipas berhasil dinyalakan secara manual (perintah dikirim via MQTT).'
+                : 'Kipas berhasil dimatikan secara manual (perintah dikirim via MQTT).')
+            : 'Status kipas tersimpan, tetapi perintah MQTT gagal dikirim.';
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -76,6 +94,7 @@ class DashboardController extends Controller
                 'led_status' => $updatedStation->led_status,
                 'led_label' => $updatedStation->led_label,
                 'drying_state_label' => $updatedStation->drying_state_label,
+                'mqtt_published' => $mqttPublished,
             ]);
         }
 

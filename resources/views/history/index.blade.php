@@ -2,7 +2,7 @@
 
 @section('content')
     {{-- Page Header --}}
-    <div class="mb-5">
+    <div class="page-header mb-5 rounded-3xl px-5 py-5 sm:px-6">
         <h2 class="text-2xl sm:text-[26px] font-bold tracking-tight text-[#14231d]">Riwayat Pengeringan</h2>
         <p class="text-sm text-[#6e7773] mt-0.5">
             Semua siklus pengeringan yang tercatat oleh station
@@ -10,7 +10,7 @@
     </div>
 
     {{-- Filter Controls & Export CSV Button --}}
-    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+    <div class="content-card flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6 rounded-2xl p-4 sm:p-5">
         <form
             method="GET"
             action="{{ route('history.index') }}"
@@ -24,7 +24,7 @@
                     id="filter-range"
                     name="range"
                     onchange="this.form.submit()"
-                    class="rounded-xl bg-white border border-[#dcdcd6] px-3.5 py-2 text-xs sm:text-sm font-medium text-[#14231d] focus:outline-none focus:border-[#187a5b]"
+                    class="content-select rounded-xl px-3.5 py-2 text-xs sm:text-sm font-medium text-[#14231d]"
                 >
                     <option value="7d" @selected($selectedRange === '7d')>7 hari terakhir</option>
                     <option value="30d" @selected($selectedRange === '30d')>30 hari terakhir</option>
@@ -40,7 +40,7 @@
                     id="filter-status"
                     name="status"
                     onchange="this.form.submit()"
-                    class="rounded-xl bg-white border border-[#dcdcd6] px-3.5 py-2 text-xs sm:text-sm font-medium text-[#14231d] focus:outline-none focus:border-[#187a5b]"
+                    class="content-select rounded-xl px-3.5 py-2 text-xs sm:text-sm font-medium text-[#14231d]"
                 >
                     <option value="all" @selected($selectedStatus === 'all')>Semua</option>
                     <option value="running" @selected($selectedStatus === 'running')>Berjalan</option>
@@ -52,7 +52,7 @@
         <div>
             <a
                 href="{{ route('history.export', ['range' => $selectedRange, 'status' => $selectedStatus]) }}"
-                class="inline-flex items-center justify-center rounded-xl bg-[#11261f] hover:bg-[#19382e] text-white text-xs sm:text-sm font-semibold px-4 py-2.5 transition-colors shadow-xs"
+                class="primary-action inline-flex items-center justify-center rounded-xl text-white text-xs sm:text-sm font-semibold px-4 py-2.5"
             >
                 Ekspor CSV
             </a>
@@ -61,12 +61,12 @@
 
     {{-- Row 1: 3 KPI Summary Cards --}}
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
-        <div class="bg-white rounded-2xl p-5 border border-[#e9e9e4] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-            <p class="text-xs font-medium text-[#6e7773]">Total Siklus (7 hari)</p>
+        <div class="kpi-card rounded-2xl p-5">
+            <p class="text-xs font-medium text-[#6e7773]">Total Siklus ({{ $selectedRange === '7d' ? '7 hari' : ($selectedRange === '30d' ? '30 hari' : 'semua waktu') }})</p>
             <p class="mt-2 text-4xl font-bold tracking-tight text-[#14231d]">{{ $totalCycles }}</p>
         </div>
 
-        <div class="bg-white rounded-2xl p-5 border border-[#e9e9e4] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+        <div class="kpi-card rounded-2xl p-5">
             <p class="text-xs font-medium text-[#6e7773]">Rata-rata Durasi</p>
             <div class="mt-2 flex items-baseline gap-1.5 text-[#14231d]">
                 <span class="text-4xl font-bold tracking-tight">{{ $avgDuration }}</span>
@@ -74,7 +74,7 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-2xl p-5 border border-[#e9e9e4] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+        <div class="kpi-card rounded-2xl p-5">
             <p class="text-xs font-medium text-[#6e7773]">Rata-rata Penurunan RH</p>
             <div class="mt-2 flex items-baseline gap-1.5 text-[#14231d]">
                 <span class="text-4xl font-bold tracking-tight">{{ $avgRhDrop }}</span>
@@ -84,7 +84,7 @@
     </div>
 
     {{-- Row 2: Durasi Pengeringan per Hari (Bar Chart) --}}
-    <div class="bg-white rounded-2xl p-5 sm:p-6 border border-[#e9e9e4] shadow-[0_1px_2px_rgba(0,0,0,0.02)] mb-5">
+    <div class="content-card rounded-2xl p-5 sm:p-6 mb-5">
         <h3 class="text-base font-bold text-[#14231d] mb-6">Durasi Pengeringan per Hari</h3>
 
         @php
@@ -104,7 +104,7 @@
                                 {{ $barCycle->duration_minutes }}
                             </span>
                             <div
-                                class="w-full max-w-[54px] rounded-t-md transition-all duration-300 {{ $isRunning ? 'bg-[#b45309]' : 'bg-[#166e55]' }}"
+                                class="history-bar w-full max-w-[54px] rounded-t-md {{ $isRunning ? 'bg-[#b45309]' : 'bg-[#166e55]' }}"
                                 style="height: {{ $heightPercent }}%"
                                 title="{{ $barCycle->short_date }}: {{ $barCycle->duration_minutes }} menit ({{ $barCycle->status_label }})"
                             ></div>
@@ -129,9 +129,9 @@
     </div>
 
     {{-- Row 3: Paginated History Table --}}
-    <div class="bg-white rounded-2xl p-5 sm:p-6 border border-[#e9e9e4] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+    <div class="content-card rounded-2xl p-5 sm:p-6">
         <div class="overflow-x-auto -mx-5 px-5 sm:mx-0 sm:px-0">
-            <table class="w-full text-left border-collapse min-w-[640px]">
+            <table class="dashboard-table w-full text-left border-collapse min-w-[640px]">
                 <thead>
                     <tr class="border-b border-[#ecece7] text-xs font-semibold text-[#6e7773]">
                         <th class="py-3 pr-4">Tanggal</th>

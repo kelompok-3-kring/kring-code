@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Route;
 | IoT & MQTT Bridge API Routes (`/api/iot/*`)
 |--------------------------------------------------------------------------
 |
-| Stateless JSON endpoints used by ESP32 stations, MQTT webhook bridges,
+| Stateless JSON endpoints used by ESP8266 stations, MQTT webhook bridges,
 | and the real-time web dashboard poller.
 |
 */

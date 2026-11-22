@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 /**
  * TelemetryIngestionService
  *
- * Core domain service that processes incoming IoT telemetry from ESP32 stations
+ * Core domain service that processes incoming IoT telemetry from ESP8266 stations
  * (whether delivered via MQTT subscriber or HTTP REST endpoint).
  *
  * Responsibilities:
@@ -47,7 +47,7 @@ class TelemetryIngestionService
     }
 
     /**
-     * Process an incoming telemetry payload from an ESP32 station.
+     * Process an incoming telemetry payload from an ESP8266 station.
      *
      * @param  array{
      *     station_code?: string,
@@ -63,6 +63,7 @@ class TelemetryIngestionService
     {
         return DB::transaction(function () use ($payload, $station): Station {
             $station ??= $this->getOrSeedDefaultStation($payload['station_code'] ?? null);
+            $station = Station::whereKey($station->id)->lockForUpdate()->firstOrFail();
 
             $humidity = round((float) $payload['humidity'], 1);
             $temperature = round((float) $payload['temperature'], 1);
@@ -248,10 +249,11 @@ class TelemetryIngestionService
 
     /**
      * Toggle the relay fan manually from the web dashboard ("Matikan Kipas Manual" / "Nyalakan Kipas Manual")
-     * and publish the command to the ESP32 over MQTT.
+     * and publish the command to the ESP8266 over MQTT.
      */
-    public function toggleManualFan(Station $station): Station
+    public function toggleManualFan(Station $station, ?bool &$mqttPublished = null): Station
     {
+        $station = Station::whereKey($station->id)->lockForUpdate()->firstOrFail();
         $newFanState = ! $station->fan_is_on;
         $activeCycle = $station->activeCycle()->first();
 
@@ -265,11 +267,14 @@ class TelemetryIngestionService
             ]);
 
             if ($activeCycle) {
+                $elapsed = max(1, (int) $activeCycle->started_at->diffInMinutes(now()));
                 $activeCycle->update([
                     'ended_at' => now(),
+                    'duration_minutes' => max($activeCycle->duration_minutes, $elapsed),
                     'final_humidity' => $station->current_humidity,
+                    'avg_temperature' => $station->current_temperature,
                     'mode' => 'Manual',
-                    'status' => 'completed',
+                    'status' => 'stopped',
                 ]);
             }
 
@@ -310,18 +315,17 @@ class TelemetryIngestionService
             ]);
         }
 
-        // Publish relay command to ESP32 via MQTT
+        // Publish relay command to ESP8266 via MQTT
         try {
-            $this->mqttBroker->publishCommand($station, [
+            $mqttPublished = $this->mqttBroker->publishCommand($station, [
                 'action' => 'set_fan',
                 'fan_is_on' => $newFanState,
                 'led_status' => $station->led_status,
             ]);
         } catch (\Throwable $e) {
+            $mqttPublished = false;
             report($e);
         }
-
-        return $station->fresh(['activeCycle']);
 
         return $station->fresh(['activeCycle']);
     }

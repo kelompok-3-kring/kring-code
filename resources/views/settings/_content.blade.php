@@ -1,5 +1,5 @@
 <div class="mt-8">
-    <div class="mb-6">
+    <div class="page-header mb-6 rounded-3xl px-5 py-5 sm:px-6">
         <h2 class="text-2xl sm:text-[26px] font-bold tracking-tight text-[#14231d]">Pengaturan Ambang</h2>
         <p class="text-sm text-[#6e7773] mt-0.5">
             Atur kapan kipas menyala dan berhenti
@@ -7,7 +7,7 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
-        <div class="bg-white rounded-2xl p-5 sm:p-6 border border-[#e9e9e4] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+        <div class="settings-card rounded-2xl p-5 sm:p-6">
             <h3 class="text-base font-bold text-[#14231d] mb-5">Ambang Sensor</h3>
 
             <form id="threshold-settings-form" method="POST" action="{{ route('settings.update') }}" class="space-y-5">
@@ -26,7 +26,7 @@
                         max="95"
                         required
                         value="{{ old('fan_on_humidity', $station->fan_on_humidity) }}"
-                        class="w-full rounded-xl border border-[#dcdcd6] px-3.5 py-2.5 text-sm font-medium text-[#14231d] focus:outline-none focus:border-[#187a5b]"
+                        class="settings-input w-full rounded-xl px-3.5 py-2.5 text-sm font-medium text-[#14231d]"
                     />
                     <p class="mt-1.5 text-xs text-[#6e7773]">Relay aktif saat kelembapan melewati nilai ini.</p>
                 </div>
@@ -43,7 +43,7 @@
                         max="90"
                         required
                         value="{{ old('fan_off_humidity', $station->fan_off_humidity) }}"
-                        class="w-full rounded-xl border border-[#dcdcd6] px-3.5 py-2.5 text-sm font-medium text-[#14231d] focus:outline-none focus:border-[#187a5b]"
+                        class="settings-input w-full rounded-xl px-3.5 py-2.5 text-sm font-medium text-[#14231d]"
                     />
                     <p class="mt-1.5 text-xs text-[#6e7773]">Siklus dianggap selesai dan dicatat ke log.</p>
                 </div>
@@ -60,7 +60,7 @@
                         max="100"
                         required
                         value="{{ old('detection_distance_cm', $station->detection_distance_cm) }}"
-                        class="w-full rounded-xl border border-[#dcdcd6] px-3.5 py-2.5 text-sm font-medium text-[#14231d] focus:outline-none focus:border-[#187a5b]"
+                        class="settings-input w-full rounded-xl px-3.5 py-2.5 text-sm font-medium text-[#14231d]"
                     />
                     <p class="mt-1.5 text-xs text-[#6e7773]">Sistem aktif jika jarak ultrasonik lebih kecil.</p>
                 </div>
@@ -77,15 +77,15 @@
                         max="300"
                         required
                         value="{{ old('data_interval_seconds', $station->data_interval_seconds) }}"
-                        class="w-full rounded-xl border border-[#dcdcd6] px-3.5 py-2.5 text-sm font-medium text-[#14231d] focus:outline-none focus:border-[#187a5b]"
+                        class="settings-input w-full rounded-xl px-3.5 py-2.5 text-sm font-medium text-[#14231d]"
                     />
-                    <p class="mt-1.5 text-xs text-[#6e7773]">Seberapa sering ESP32 mengirim data ke server.</p>
+                    <p class="mt-1.5 text-xs text-[#6e7773]">Seberapa sering ESP8266 mengirim data ke server.</p>
                 </div>
 
                 <div class="pt-2 flex flex-wrap items-center gap-3">
                     <button
                         type="submit"
-                        class="px-5 py-2.5 rounded-xl bg-[#187a5b] hover:bg-[#14664c] text-white text-xs sm:text-sm font-semibold transition-colors cursor-pointer shadow-xs"
+                        class="primary-action px-5 py-2.5 rounded-xl text-white text-xs sm:text-sm font-semibold cursor-pointer"
                     >
                         Simpan Perubahan
                     </button>
@@ -104,7 +104,7 @@
             </form>
         </div>
 
-        <div class="bg-white rounded-2xl p-5 sm:p-6 border border-[#e9e9e4] shadow-[0_1px_2px_rgba(0,0,0,0.02)] space-y-7">
+        <div class="settings-card rounded-2xl p-5 sm:p-6 space-y-7">
             <div>
                 <h3 class="text-base font-bold text-[#14231d] mb-4">Perilaku LED</h3>
                 <ul class="space-y-3 text-xs sm:text-sm">
